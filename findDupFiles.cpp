@@ -6,6 +6,7 @@
 //
 // the program uses C++ containers and strings, but otherwise
 // uses standard C APIs
+// ===================================================================
 
 #include <stdlib.h>
 #include <stdio.h>
