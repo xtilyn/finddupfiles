@@ -1,6 +1,6 @@
 g++ findDupFiles.cpp
 rm -rf tests
-mkdir -p tests/1 tests/2 tests/
+mkdir -p tests/1 tests/2 tests/33
 echo hello > tests/hello.txt
 echo hello > tests/1/hello2.txt
 echo hellp > tests/2/hello3.txt

@@ -14,18 +14,21 @@
 #include <cassert>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 // read line from fp
 // returns False on EOF
 //         True  on success
-bool
-get_line( std::string & line, FILE * fp = stdin)
+bool get_line(std::string &line, FILE *fp = stdin)
 {
   line.clear();
-  while(1) {
+  while (1)
+  {
     int c = fgetc(fp);
-    if( c == '\n') return true;
-    if( c == EOF) return ! line.empty();
+    if (c == '\n')
+      return true;
+    if (c == EOF)
+      return !line.empty();
     line.push_back(c);
   }
 }
@@ -34,62 +37,84 @@ get_line( std::string & line, FILE * fp = stdin)
 // on failure returns empty string
 // uses popen() to call sha256sum binary
 std::string
-digest( const std::string & fname)
+digest(const std::string &fname)
 {
   std::string cmdline = "sha256sum " + fname + " 2> /dev/null";
-  FILE * fp = popen( cmdline.c_str(), "r");
-  if( fp == NULL) return "";
+  FILE *fp = popen(cmdline.c_str(), "r");
+  if (fp == NULL)
+    return "";
   std::string output;
-  if( ! get_line(output, fp)) return "";
-  if( pclose(fp) != 0) return "";
+  if (!get_line(output, fp))
+    return "";
+  if (pclose(fp) != 0)
+    return "";
   std::string result;
-  for( auto c : output)
-    if( isspace(c)) break ; else result.push_back(c);
+  for (auto c : output)
+    if (isspace(c))
+      break;
+    else
+      result.push_back(c);
   return result;
 }
 
-int
-main()
+int main()
 {
   // read a list of filenames from stdin
   std::vector<std::string> fnames;
   std::string line;
-  while(1) {
-    if( ! get_line(line)) break;
+  while (1)
+  {
+    if (!get_line(line))
+      break;
     fnames.push_back(line);
   }
 
-  // for debugging purposes print out the filenames
-  printf("Read %lu filenames:\n", fnames.size());
-  for( const auto & fname : fnames)
-    printf("  '%s'\n", fname.c_str());
-
-  if( fnames.size() < 2) {
+  if (fnames.size() < 2)
+  {
     printf("I could have worked if you gave me 2+ filenames... :(\n");
     return -1;
   }
 
-  // compute the digests for first 2 files
-  std::string dig1 = digest( fnames[0]);
-  if( dig1.empty()) {
-    printf("Could not get digest for file %s\n", fnames[0].c_str());
-    return -1;
-  }
-  printf("Digest 1: %s\n", dig1.c_str());
-  std::string dig2 = digest( fnames[1]);
-  if( dig2.empty()) {
-    printf("Could not get digest for file %s\n", fnames[1].c_str());
-    return -1;
-  }
-  printf("Digest 2: %s\n", dig2.c_str());
+  std::vector<std::string> invalid;
+  std::unordered_map<std::string, std::vector<std::string>> digestsMap;
+  for (int i = 0; i < fnames.size(); i++)
+  {
+    std::string dig = digest(fnames[i]);
+    if (dig.empty())
+    {
+      invalid.push_back(fnames[i].c_str());
+    }
+    else
+    {
+      if (digestsMap.find(dig) == digestsMap.end())
+      {
+        digestsMap[dig] = std::vector<std::string>();
+      }
 
-  // compare digests
-  if( dig1 == dig2) {
-    printf( "First two files are (probably) identical.\n");
-  } else {
-    printf( "First two files are definitely not identical.\n");
+      digestsMap[dig].push_back(fnames[i].c_str());
+    }
+  }
+
+  int num = 1;
+  for (auto it : digestsMap)
+  {
+    if (it.second.size() > 1)
+    {
+      printf("Match %d\n", num);
+      for (int j = 0; j < it.second.size(); j++)
+      {
+        printf("    - %s\n", it.second[j].c_str());
+      }
+      num++;
+    }
+  }
+
+  if (invalid.size() > 0)
+    printf("Could not compute digests for files:\n");
+  for (int k = 0; k < invalid.size(); k++)
+  {
+    printf("    - %s\n", invalid[k].c_str());
   }
 
   return 0;
 }
-
